@@ -1,0 +1,153 @@
+<!-- WEATHER SCRIPT -->
+<script>
+(async () => {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=39.61&longitude=-104.91&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America/Denver';
+    const d = await fetch(url).then(r => r.json());
+    const h = new Date().getHours();
+    const t  = Math.round(d.hourly.temperature_2m[h]);
+    const c  = d.hourly.weather_code[h];
+    const hi = Math.round(d.daily.temperature_2m_max[0]);
+    const lo = Math.round(d.daily.temperature_2m_min[0]);
+    const names = {0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Frozen fog',
+                   51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',
+                   65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',95:'Thunderstorm'};
+    document.getElementById('wTemp').textContent = `${t}°F`;
+    document.getElementById('wDesc').textContent = names[c] || '––';
+    document.getElementById('wHiLo').textContent = `Hi ${hi}° / Lo ${lo}°`;
+  } catch {
+    document.getElementById('wDesc').textContent = 'Weather unavailable';
+  }
+})();
+</script>
+
+<!-- PLANES MAP SCRIPT -->
+<script>
+(function () {
+  const map = L.map('planesMap', {zoomControl:false}).setView([39.61,-104.91], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(map);
+  const bbox = {lamin:39.55,lamax:39.70,lomin:-105.10,lomax:-104.70};
+  const markers = {};
+
+  async function loadPlanes() {
+    try {
+      const url = `https://corsproxy.io/?https://opensky-network.org/api/states/all?lamin=${bbox.lamin}&lomin=${bbox.lomin}&lamax=${bbox.lamax}&lomax=${bbox.lomax}`;
+      const data = await fetch(url).then(r => r.json());
+      const seen = new Set();
+
+      (Array.isArray(data.states) ? data.states : []).forEach(s => {
+        const id = s[0], lat = s[6], lon = s[5];
+        if (!lat || !lon) return;
+        seen.add(id);
+        if (markers[id]) {
+          markers[id].setLatLng([lat,lon]);
+        } else {
+          markers[id] = L.circleMarker([lat,lon], {radius:6,weight:1,color:'#23c463',fillOpacity:.8}).addTo(map);
+        }
+      });
+
+      Object.keys(markers).forEach(id => {
+        if (!seen.has(id)) {
+          map.removeLayer(markers[id]);
+          delete markers[id];
+        }
+      });
+    } catch {/* silent */}
+  }
+
+  loadPlanes();
+  setInterval(loadPlanes, 60000);
+})();
+</script>
+
+<!-- MAIN LOGIC SCRIPT -->
+<script>
+(function (init) {
+  document.readyState !== 'loading' ? init() : document.addEventListener('DOMContentLoaded', init);
+})(main);
+
+function main() {
+const API   = 'https://greenwood-helper-proxy.jenny-hoffman927.workers.dev/chat/completions';
+const MODEL = 'gpt-4o-mini';
+const SYS   = `ROLE▸You are Greenwood Helper, the hyper-local concierge for Greenwood Village, CO.
+SCOPE▸Answer only GV-related questions unless “webSearch” context is supplied.
+STYLE▸≤60 words, upbeat, 1 emoji max, never mention “AI”.`;
+const LIMIT = 20;
+
+const $      = id => document.getElementById(id);
+const q      = $('q'), send=$('send'), search=$('search'), picture=$('picture'), contest=$('contest');
+const overlay= $('confirmOverlay'), okBtn=$('okBtn'), editBtn=$('editBtn');
+const cOv    = $('contestOverlay'), cClose=$('cClose');
+const dash   = $('dashboardBtn');
+const cBtns  = document.querySelectorAll('.cPrompt');
+
+const store={read(){try{return JSON.parse(localStorage.gvCnt||'{}');}catch{return {}}},write(v){try{localStorage.gvCnt=JSON.stringify(v);}catch{}}};
+const today=()=>new Date().toISOString().slice(0,10);
+const getCnt=()=>store.read().d===today()?store.read().c:0;
+const bump =()=>store.write({d:today(),c:getCnt()+1});
+const paint=()=>$('quotaFill').style.width=Math.min(100,getCnt()/LIMIT*100)+'%';
+
+const banner=m=>{const d=document.createElement('div');d.textContent='⚠ '+m;Object.assign(d.style,{position:'fixed',bottom:0,left:0,right:0,padding:'8px',background:'#c62828',color:'#fff',fontFamily:'sans-serif',zIndex:9999});document.body.append(d);setTimeout(()=>d.remove(),6000);};
+const bubble=(html,cls)=>{$('messages').insertAdjacentHTML('beforeend',`<div class="msg ${cls}"><span class="bubble">${html}</span></div>`);$('messages').scrollTop=$('messages').scrollHeight;};
+const lock=x=>{send.disabled=search.disabled=picture.disabled=contest.disabled=x;};
+
+async function webSearch(qry){
+  const url=`https://api.duckduckgo.com/?q=${encodeURIComponent(qry)}&format=json&no_html=1&skip_disambig=1`;
+  const r=await fetch(url);
+  if(!r.ok) throw new Error('Web search failed');
+  const j=await r.json();
+  let ctx='';
+  if(j.AbstractText) ctx+='Result: '+j.AbstractText+'\n';
+  if(Array.isArray(j.RelatedTopics)) j.RelatedTopics.slice(0,3).forEach(t=>{
+    if(typeof t.Text==='string') ctx+='- '+t.Text+'\n';
+  });
+  return ctx || 'No direct answer found.';
+}
+
+async function askAI(userTxt,extraCtx=''){
+  const body={model:MODEL,max_tokens:128,
+              messages:[{role:'system',content:SYS+extraCtx},{role:'user',content:userTxt}]};
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  const j=await r.json();
+  return (j.choices?.[0]?.message?.content || '').trim() || '[no reply]';
+}
+
+const generateImage = prompt => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`;
+
+async function talk(userTxt,useWeb){
+  if(getCnt()>=LIMIT){banner('Daily limit reached');return;}
+  bubble(userTxt,'user'); lock(true); q.value='';
+  try{
+    let ctx='';
+    if(useWeb){ bubble('🔍 web searching…','ai'); ctx=`\n\nwebSearch▸${await webSearch(userTxt)}\n\n`; }
+    bubble(await askAI(userTxt,ctx),'ai');
+  }catch(e){ bubble('Error: '+e.message,'ai'); }
+  finally{ bump(); paint(); lock(false); }
+}
+
+async function pictureFlow(prompt){
+  if(!prompt) return;
+  bubble('🖼️ generating image…','ai'); lock(true); q.value='';
+  try{ bubble(`<img src="${generateImage(prompt)}" alt="${prompt}">`,'ai'); }
+  catch(e){ bubble('Error: '+e.message,'ai'); }
+  finally{ bump(); paint(); lock(false); }
+}
+
+send.onclick    = ()=>{ const txt=q.value.trim(); if(txt) talk(txt,false); };
+picture.onclick = ()=>{ const txt=q.value.trim(); pictureFlow(txt); };
+search.onclick  = ()=>{ const txt=q.value.trim(); if(!txt) return; overlay.style.display='flex';
+                        okBtn.onclick=()=>{overlay.style.display='none';talk(txt,true);};
+                        editBtn.onclick=()=>{overlay.style.display='none';q.focus();}; };
+q.onkeydown     = e=>{ if(e.key==='Enter') send.click(); };
+
+contest.onclick = ()=> cOv.style.display='flex';
+dash.onclick    = ()=> cOv.style.display='flex';
+cClose.onclick  = ()=> cOv.style.display='none';
+cBtns.forEach(b=>b.onclick=()=>{ q.value=b.dataset.prompt || ''; cOv.style.display='none'; q.focus(); });
+
+const obs=new IntersectionObserver((e,o)=>e.forEach(n=>{ if(n.isIntersecting){ n.target.style.opacity=1;n.target.style.transform='none'; o.unobserve(n.target); } }),{threshold:.2});
+document.querySelectorAll('.feature').forEach(c=>obs.observe(c));
+paint();
+}
+</script>
