@@ -1,4 +1,184 @@
-<!-- WEATHER SCRIPT -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Greenwood Helper</title>
+
+  <!-- favicon -->
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width=\"32\" height=\"32\" rx=\"6\" fill=\"%2323c463\"/><text x=\"16\" y=\"22\" font-family='Poppins, sans-serif' font-size=\"20\" text-anchor=\"middle\" fill=\"white\">G</text></svg>'">
+
+  <!-- fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin></script>
+
+  <!-- styles -->
+  <style>
+  :root{
+    --brand:#23c463;--brand-dark:#1ba355;
+    --bg:#080808;  --card:#141414; --text:#f5f5f5;
+    --radius:22px; --shadow:0 6px 22px rgba(0,0,0,.4);
+    --t:.25s cubic-bezier(.4,0,.2,1)
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Poppins",system-ui,sans-serif}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);display:flex;flex-direction:column;min-height:100vh;scroll-behavior:smooth}
+  header{background:linear-gradient(135deg,#1dd65f 0%,#11b557 50%,#0c9e50 100%);
+         color:#fff;text-align:center;padding:clamp(1.4rem,4vw,2.6rem) 1rem;
+         font-size:clamp(1.8rem,3.4vw,2.4rem);font-weight:700;letter-spacing:-.4px;
+         position:sticky;top:0;z-index:20}
+
+  main{flex:1;width:100%;max-width:950px;margin:auto;padding:2rem 1.25rem;
+       display:flex;flex-direction:column;gap:3rem}
+
+  .hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:1.1rem}
+  .hero h1{font-size:clamp(1.35rem,3vw,1.95rem);font-weight:600;line-height:1.34}
+  .hero p{max-width:560px;opacity:.85}
+  .cta-btn{border:2px solid var(--brand);background:#fff;color:var(--brand);
+           padding:.8rem 1.55rem;border-radius:70px;font-weight:600;cursor:pointer;
+           transition:var(--t)}
+  .cta-btn:hover{background:var(--brand);color:#fff;transform:translateY(-3px)}
+
+  .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.6rem}
+  .feature{background:var(--card);padding:1.6rem;border-radius:var(--radius);box-shadow:var(--shadow);
+           text-align:center;display:flex;flex-direction:column;gap:.65rem;
+           transition:transform .35s var(--t);opacity:0;transform:translateY(30px)}
+  .feature:hover{transform:translateY(-8px)}
+  .feature i{font-size:2rem;color:var(--brand)}
+
+  #weatherCard,#planesCard{background:var(--card);padding:1.6rem;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:.6rem}
+  #weatherCard span{font-size:1.4rem;font-weight:600}
+  #planesCard h3{font-size:1.2rem;margin:0 auto .4rem;text-align:center}
+  #planesMap{height:300px;width:100%;border-radius:var(--radius)}
+
+  #chat{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+        overflow:hidden;display:flex;flex-direction:column;min-height:500px}
+  #messages{flex:1;overflow-y:auto;padding:1.1rem;scroll-behavior:smooth}
+  .msg{margin-bottom:1rem}
+  .bubble{display:inline-block;padding:.8rem 1rem;border-radius:var(--radius);max-width:85%;animation:pop .25s}
+  .ai img{max-width:100%;border-radius:var(--radius);display:block;margin-top:.4rem}
+  .user{text-align:right}.ai{text-align:left}
+  .user .bubble{background:var(--brand);color:#fff}
+  .ai   .bubble{background:#0d0d0d;color:var(--text)}
+  @keyframes pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+
+  #inputBar{background:rgba(255,255,255,.07);backdrop-filter:blur(10px);
+            padding:1rem;border-top:1px solid rgba(255,255,255,.09);
+            display:flex;flex-direction:column;gap:.75rem}
+  #q{flex:1;padding:.85rem 1rem;border:none;border-radius:70px;font-size:1rem;color:#000;background:#fff}
+  .note{color:var(--brand);font-size:.85rem;font-weight:600;margin-bottom:.25rem;text-align:center}
+  #btnRow{display:flex;gap:.8rem;flex-wrap:wrap}
+  button{border:none;padding:.82rem 1.45rem;border-radius:70px;font-weight:600;font-size:1rem;cursor:pointer;transition:var(--t)}
+  #send{background:var(--brand);color:#fff}
+  #search{background:var(--brand-dark);color:#fff}
+  #picture,#contest{background:#3b3b3b;color:#fff}
+  #send:hover:not(:disabled),#search:hover:not(:disabled),#picture:hover:not(:disabled),#contest:hover:not(:disabled){transform:translateY(-2px)}
+  button:disabled{opacity:.55}
+
+  #quotaBar{height:6px;background:#333;border-radius:4px;overflow:hidden}
+  #quotaFill{height:100%;background:var(--brand);width:0%}
+
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000}
+  .modal{background:var(--card);padding:1.8rem;border-radius:var(--radius);box-shadow:var(--shadow);max-width:340px;text-align:center;display:flex;flex-direction:column;gap:1.2rem}
+  .modal button{padding:.7rem 1rem;border:none;border-radius:70px;font-weight:600;font-size:1rem;cursor:pointer;transition:var(--t)}
+  .ok{background:var(--brand);color:#fff}.edit{background:#444;color:#fff}.cPrompt{background:#444;color:#fff;width:100%}
+
+  /* floating dashboard button */
+  #dashboardBtn{position:fixed;bottom:24px;right:24px;z-index:30;background:var(--brand-dark);color:#fff;border:none;border-radius:70px;padding:.9rem 1.6rem;font-weight:600;font-size:1rem;box-shadow:var(--shadow);cursor:pointer;transition:var(--t)}
+  #dashboardBtn:hover{transform:translateY(-3px)}
+  </style>
+</head>
+<body>
+
+<header>Greenwood&nbsp;Helper</header>
+
+<!-- FLOATING DASHBOARD BUTTON -->
+<button id="dashboardBtn">Dashboard</button>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Your local AI companion for everything Greenwood Village, CO 🌲</h1>
+    <p>Ask about traffic, events, restaurants, services, and more – Greenwood Helper has hyper-local answers in seconds.</p>
+    <button class="cta-btn" onclick="document.getElementById('chat').scrollIntoView({behavior:'smooth'})">Try it now</button>
+  </section>
+
+  <!-- WEATHER -->
+  <section id="weatherCard">
+    <span id="wTemp">–°F</span>
+    <div id="wDesc">Loading weather…</div>
+    <small id="wHiLo"></small>
+  </section>
+
+  <!-- PLANES MAP -->
+  <section id="planesCard">
+    <h3>Live Flights Above Greenwood</h3>
+    <div id="planesMap"></div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="feature"><i>🗺️</i><h3>Fastest Routes</h3><p>Real-time shortcuts around town.</p></div>
+    <div class="feature"><i>🍽️</i><h3>Local Eats</h3><p>Find top places to dine.</p></div>
+    <div class="feature"><i>🎉</i><h3>Events & Activities</h3><p>What’s happening this week.</p></div>
+    <div class="feature"><i>🚨</i><h3>Live Traffic</h3><p>Avoid jams with minute-by-minute updates.</p></div>
+    <div class="feature"><i>✈️</i><h3>Planes Overhead</h3><p>Now on a live map!</p></div>
+    <div class="feature"><i>🏆</i><h3>Local Contests</h3><p>Enter & vote in community contests.</p></div>
+  </section>
+
+  <!-- CHAT -->
+  <section id="chat">
+    <div id="messages"></div>
+
+    <form id="inputBar" onsubmit="return false;">
+      <input id="q" placeholder="Ask me anything about Greenwood Village…" autocomplete="off">
+      <div id="quotaBar"><div id="quotaFill"></div></div>
+
+      <div id="btnRow">
+        <button id="send" type="button">Send</button>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem">
+          <span class="note">Real-Time Results!</span>
+          <button id="search" type="button">Search Web</button>
+        </div>
+        <button id="picture" type="button">Make Picture</button>
+        <button id="contest" type="button">Contest ?</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<!-- SEARCH WARNING POP-UP -->
+<div id="confirmOverlay" class="overlay">
+  <div class="modal">
+    <p>If you didn’t type “<strong>Greenwood Village CO</strong>” it may search for another Greenwood!</p>
+    <div style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap">
+      <button id="okBtn"   class="ok">All good!</button>
+      <button id="editBtn" class="edit">Edit message</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEST OVERLAY -->
+<div id="contestOverlay" class="overlay">
+  <div class="modal">
+    <h3 style="margin-bottom:.4rem">Local Contests</h3>
+    <p style="font-size:.9rem;opacity:.8;margin-bottom:.8rem">Pick one to auto-fill your question.</p>
+    <button class="cPrompt" data-prompt="Tell me about entering the Greenwood Village Photo Contest 📸">📸 Photo Contest</button>
+    <button class="cPrompt" data-prompt="How do I participate in the Greenwood Village Garden Show? 🌼">🌼 Garden Show</button>
+    <button id="cClose" class="edit" style="margin-top:1rem">Close</button>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<!-- WEATHER -->
 <script>
 (async () => {
   try {
@@ -21,11 +201,12 @@
 })();
 </script>
 
-<!-- PLANES MAP SCRIPT -->
+<!-- PLANES MAP -->
 <script>
 (function () {
   const map = L.map('planesMap', {zoomControl:false}).setView([39.61,-104.91], 11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(map);
+
   const bbox = {lamin:39.55,lamax:39.70,lomin:-105.10,lomax:-104.70};
   const markers = {};
 
@@ -46,12 +227,7 @@
         }
       });
 
-      Object.keys(markers).forEach(id => {
-        if (!seen.has(id)) {
-          map.removeLayer(markers[id]);
-          delete markers[id];
-        }
-      });
+      Object.keys(markers).forEach(id => { if (!seen.has(id)) { map.removeLayer(markers[id]); delete markers[id]; }});
     } catch {/* silent */}
   }
 
@@ -60,13 +236,13 @@
 })();
 </script>
 
-<!-- MAIN LOGIC SCRIPT -->
 <script>
 (function (init) {
   document.readyState !== 'loading' ? init() : document.addEventListener('DOMContentLoaded', init);
 })(main);
 
 function main() {
+/* ---- CONFIG ---- */
 const API   = 'https://greenwood-helper-proxy.jenny-hoffman927.workers.dev/chat/completions';
 const MODEL = 'gpt-4o-mini';
 const SYS   = `ROLE▸You are Greenwood Helper, the hyper-local concierge for Greenwood Village, CO.
@@ -74,6 +250,7 @@ SCOPE▸Answer only GV-related questions unless “webSearch” context is suppl
 STYLE▸≤60 words, upbeat, 1 emoji max, never mention “AI”.`;
 const LIMIT = 20;
 
+/* ---- DOM ---- */
 const $      = id => document.getElementById(id);
 const q      = $('q'), send=$('send'), search=$('search'), picture=$('picture'), contest=$('contest');
 const overlay= $('confirmOverlay'), okBtn=$('okBtn'), editBtn=$('editBtn');
@@ -81,16 +258,19 @@ const cOv    = $('contestOverlay'), cClose=$('cClose');
 const dash   = $('dashboardBtn');
 const cBtns  = document.querySelectorAll('.cPrompt');
 
+/* ---- QUOTA ---- */
 const store={read(){try{return JSON.parse(localStorage.gvCnt||'{}');}catch{return {}}},write(v){try{localStorage.gvCnt=JSON.stringify(v);}catch{}}};
 const today=()=>new Date().toISOString().slice(0,10);
 const getCnt=()=>store.read().d===today()?store.read().c:0;
 const bump =()=>store.write({d:today(),c:getCnt()+1});
 const paint=()=>$('quotaFill').style.width=Math.min(100,getCnt()/LIMIT*100)+'%';
 
+/* ---- HELPERS ---- */
 const banner=m=>{const d=document.createElement('div');d.textContent='⚠ '+m;Object.assign(d.style,{position:'fixed',bottom:0,left:0,right:0,padding:'8px',background:'#c62828',color:'#fff',fontFamily:'sans-serif',zIndex:9999});document.body.append(d);setTimeout(()=>d.remove(),6000);};
 const bubble=(html,cls)=>{$('messages').insertAdjacentHTML('beforeend',`<div class="msg ${cls}"><span class="bubble">${html}</span></div>`);$('messages').scrollTop=$('messages').scrollHeight;};
 const lock=x=>{send.disabled=search.disabled=picture.disabled=contest.disabled=x;};
 
+/* ---- DUCKDUCKGO ---- */
 async function webSearch(qry){
   const url=`https://api.duckduckgo.com/?q=${encodeURIComponent(qry)}&format=json&no_html=1&skip_disambig=1`;
   const r=await fetch(url);
@@ -104,6 +284,7 @@ async function webSearch(qry){
   return ctx || 'No direct answer found.';
 }
 
+/* ---- CHAT ---- */
 async function askAI(userTxt,extraCtx=''){
   const body={model:MODEL,max_tokens:128,
               messages:[{role:'system',content:SYS+extraCtx},{role:'user',content:userTxt}]};
@@ -113,8 +294,10 @@ async function askAI(userTxt,extraCtx=''){
   return (j.choices?.[0]?.message?.content || '').trim() || '[no reply]';
 }
 
+/* ---- IMAGE --- */
 const generateImage = prompt => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`;
 
+/* ---- FLOWS ---- */
 async function talk(userTxt,useWeb){
   if(getCnt()>=LIMIT){banner('Daily limit reached');return;}
   bubble(userTxt,'user'); lock(true); q.value='';
@@ -134,6 +317,7 @@ async function pictureFlow(prompt){
   finally{ bump(); paint(); lock(false); }
 }
 
+/* ---- EVENTS ---- */
 send.onclick    = ()=>{ const txt=q.value.trim(); if(txt) talk(txt,false); };
 picture.onclick = ()=>{ const txt=q.value.trim(); pictureFlow(txt); };
 search.onclick  = ()=>{ const txt=q.value.trim(); if(!txt) return; overlay.style.display='flex';
@@ -146,8 +330,11 @@ dash.onclick    = ()=> cOv.style.display='flex';
 cClose.onclick  = ()=> cOv.style.display='none';
 cBtns.forEach(b=>b.onclick=()=>{ q.value=b.dataset.prompt || ''; cOv.style.display='none'; q.focus(); });
 
+/* fade-ins & quota bar */
 const obs=new IntersectionObserver((e,o)=>e.forEach(n=>{ if(n.isIntersecting){ n.target.style.opacity=1;n.target.style.transform='none'; o.unobserve(n.target); } }),{threshold:.2});
 document.querySelectorAll('.feature').forEach(c=>obs.observe(c));
 paint();
 }
 </script>
+</body>
+</html>
