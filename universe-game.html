@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universe History Game</title>
+<style>
+ body,html {margin:0;padding:0;font-family:sans-serif;background:#000;color:#fff;}
+ .scene {display:none;min-height:100vh;padding:2rem;box-sizing:border-box;text-align:center;}
+ .scene.active {display:block;}
+ #nav {position:fixed;bottom:1rem;right:1rem;z-index:10;}
+ #nav button {font-size:2rem;padding:.5rem 1rem;border:none;border-radius:.3rem;cursor:pointer;}
+ .btn {background:#0a84ff;color:#fff;}
+ .animals img {width:80px;height:80px;margin:.5rem;cursor:pointer;}
+ #playOverlay {position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:20;}
+ canvas {background:#111;border:1px solid #fff;touch-action:none;}
+</style>
+</head>
+<body>
+<div id="scenes">
+ <div class="scene active" id="scene0">
+  <h1>The Big Bang</h1>
+  <p>The universe begins in a hot, dense expansion.</p>
+ </div>
+ <div class="scene" id="scene1">
+  <h1>Stars and Galaxies Form</h1>
+  <p>Gravity pulls matter together creating shining stars.</p>
+ </div>
+ <div class="scene" id="scene2">
+  <h1>Birth of the Solar System</h1>
+  <p>A cloud collapses forming our Sun and planets.</p>
+ </div>
+ <div class="scene" id="scene3">
+  <h1>Early Earth</h1>
+  <p>Earth cools, oceans form and chemistry sets the stage for life.</p>
+ </div>
+ <div class="scene" id="scene4">
+  <h1>First Life</h1>
+  <p>Simple cells appear in the primordial seas.</p>
+  <div class="animals">
+   <img src="https://dummyimage.com/80/09f/fff.png&text=Microbe" alt="microbe" onclick="openGame('microbe')">
+  </div>
+ </div>
+ <div class="scene" id="scene5">
+  <h1>Plants and Animals</h1>
+  <p>Complex life spreads across the planet.</p>
+  <div class="animals">
+   <img src="https://dummyimage.com/80/0f9/fff.png&text=Fish" alt="fish" onclick="openGame('fish')">
+   <img src="https://dummyimage.com/80/f90/fff.png&text=Plant" alt="plant" onclick="openGame('plant')">
+  </div>
+ </div>
+ <div class="scene" id="scene6">
+  <h1>Humans Arrive</h1>
+  <p>Technology and civilization begin.</p>
+ </div>
+ <div class="scene" id="scene7">
+  <h1>The Future</h1>
+  <p>Your story continues!</p>
+ </div>
+</div>
+<div id="nav"><button id="next" class="btn">&rarr;</button></div>
+<div id="playOverlay" onclick="closeGame()">
+ <canvas id="play" width="300" height="300"></canvas>
+</div>
+<script>
+const scenes=document.querySelectorAll('.scene');
+let index=0;
+function show(i){
+ scenes[index].classList.remove('active');
+ index=(i+scenes.length)%scenes.length;
+ scenes[index].classList.add('active');
+}
+document.getElementById('next').onclick=()=>show(index+1);
+// simple canvas game
+let ctx,player,foods,preds,gameRunning;
+function openGame(type){
+ const c=document.getElementById('play');
+ ctx=c.getContext('2d');
+ player={x:150,y:150,dx:0,dy:0,score:0};
+ foods=[]; preds=[];
+ for(let i=0;i<5;i++) foods.push({x:Math.random()*300,y:Math.random()*300});
+ if(type!=='plant') for(let i=0;i<3;i++) preds.push({x:Math.random()*300,y:Math.random()*300});
+ gameRunning=true;
+ document.getElementById('playOverlay').style.display='flex';
+ requestAnimationFrame(loop);
+ document.onkeydown=e=>{
+  if(e.key=='ArrowUp')player.dy=-2;
+  else if(e.key=='ArrowDown')player.dy=2;
+  else if(e.key=='ArrowLeft')player.dx=-2;
+  else if(e.key=='ArrowRight')player.dx=2;
+ };
+ document.onkeyup=e=>{
+  if(e.key.startsWith('Arrow')){player.dx=0;player.dy=0;}
+ };
+}
+function closeGame(){
+ gameRunning=false;
+ document.getElementById('playOverlay').style.display='none';
+}
+function loop(){
+ if(!gameRunning)return;
+ ctx.clearRect(0,0,300,300);
+ // move player
+ player.x+=player.dx; player.y+=player.dy;
+ player.x=Math.max(0,Math.min(300,player.x));
+ player.y=Math.max(0,Math.min(300,player.y));
+ ctx.fillStyle='cyan';
+ ctx.beginPath();ctx.arc(player.x,player.y,10,0,Math.PI*2);ctx.fill();
+ // draw foods
+ ctx.fillStyle='lime';
+ foods.forEach((f,i)=>{ctx.beginPath();ctx.arc(f.x,f.y,5,0,Math.PI*2);ctx.fill();
+  if(Math.hypot(player.x-f.x,player.y-f.y)<10){foods.splice(i,1);player.score++;}
+ });
+ // draw predators
+ ctx.fillStyle='red';
+ preds.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fill();
+  let angle=Math.atan2(player.y-p.y,player.x-p.x);p.x+=Math.cos(angle);p.y+=Math.sin(angle);
+  if(Math.hypot(player.x-p.x,player.y-p.y)<12){gameRunning=false;alert('You were eaten!');closeGame();}
+ });
+ if(foods.length===0){gameRunning=false;alert('You survived!');closeGame();}
+ else requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
