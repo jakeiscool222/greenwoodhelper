@@ -244,7 +244,7 @@
 function main() {
 /* ---- CONFIG ---- */
 const API   = 'https://greenwood-helper-proxy.jenny-hoffman927.workers.dev/chat/completions';
-const MODEL = 'gpt-4o-mini';
+const MODEL = 'gayet';
 const SYS   = `ROLE▸You are Greenwood Helper, the hyper-local concierge for Greenwood Village, CO.
 SCOPE▸Answer only GV-related questions unless “webSearch” context is supplied.
 STYLE▸≤60 words, upbeat, 1 emoji max, never mention “AI”.`;
