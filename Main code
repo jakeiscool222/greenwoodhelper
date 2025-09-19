@@ -2,339 +2,712 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Greenwood Helper</title>
-
-  <!-- favicon -->
-  <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width=\"32\" height=\"32\" rx=\"6\" fill=\"%2323c463\"/><text x=\"16\" y=\"22\" font-family='Poppins, sans-serif' font-size=\"20\" text-anchor=\"middle\" fill=\"white\">G</text></svg>'">
-
-  <!-- fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin></script>
-
-  <!-- styles -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Omni droid V8 Mobile Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
-  :root{
-    --brand:#23c463;--brand-dark:#1ba355;
-    --bg:#080808;  --card:#141414; --text:#f5f5f5;
-    --radius:22px; --shadow:0 6px 22px rgba(0,0,0,.4);
-    --t:.25s cubic-bezier(.4,0,.2,1)
-  }
-  *{box-sizing:border-box;margin:0;padding:0;font-family:"Poppins",system-ui,sans-serif}
-  html,body{height:100%}
-  body{background:var(--bg);color:var(--text);display:flex;flex-direction:column;min-height:100vh;scroll-behavior:smooth}
-  header{background:linear-gradient(135deg,#1dd65f 0%,#11b557 50%,#0c9e50 100%);
-         color:#fff;text-align:center;padding:clamp(1.4rem,4vw,2.6rem) 1rem;
-         font-size:clamp(1.8rem,3.4vw,2.4rem);font-weight:700;letter-spacing:-.4px;
-         position:sticky;top:0;z-index:20}
+    :root {
+      color-scheme: dark;
+      --panel-bg: rgba(6, 12, 24, 0.72);
+      --panel-border: rgba(96, 140, 255, 0.4);
+      --text: #e9f1ff;
+      --accent: #ff5f2e;
+      --accent-soft: rgba(255, 95, 46, 0.45);
+      --blue: rgba(82, 138, 255, 0.9);
+      font-family: "Poppins", "Segoe UI", system-ui, sans-serif;
+    }
 
-  main{flex:1;width:100%;max-width:950px;margin:auto;padding:2rem 1.25rem;
-       display:flex;flex-direction:column;gap:3rem}
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
 
-  .hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:1.1rem}
-  .hero h1{font-size:clamp(1.35rem,3vw,1.95rem);font-weight:600;line-height:1.34}
-  .hero p{max-width:560px;opacity:.85}
-  .cta-btn{border:2px solid var(--brand);background:#fff;color:var(--brand);
-           padding:.8rem 1.55rem;border-radius:70px;font-weight:600;cursor:pointer;
-           transition:var(--t)}
-  .cta-btn:hover{background:var(--brand);color:#fff;transform:translateY(-3px)}
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% -10%, #15203b 0%, #04070f 55%, #010208 100%);
+      color: var(--text);
+    }
 
-  .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.6rem}
-  .feature{background:var(--card);padding:1.6rem;border-radius:var(--radius);box-shadow:var(--shadow);
-           text-align:center;display:flex;flex-direction:column;gap:.65rem;
-           transition:transform .35s var(--t);opacity:0;transform:translateY(30px)}
-  .feature:hover{transform:translateY(-8px)}
-  .feature i{font-size:2rem;color:var(--brand)}
+    body {
+      position: relative;
+    }
 
-  #weatherCard,#planesCard{background:var(--card);padding:1.6rem;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:.6rem}
-  #weatherCard span{font-size:1.4rem;font-weight:600}
-  #planesCard h3{font-size:1.2rem;margin:0 auto .4rem;text-align:center}
-  #planesMap{height:300px;width:100%;border-radius:var(--radius)}
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
 
-  #chat{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
-        overflow:hidden;display:flex;flex-direction:column;min-height:500px}
-  #messages{flex:1;overflow-y:auto;padding:1.1rem;scroll-behavior:smooth}
-  .msg{margin-bottom:1rem}
-  .bubble{display:inline-block;padding:.8rem 1rem;border-radius:var(--radius);max-width:85%;animation:pop .25s}
-  .ai img{max-width:100%;border-radius:var(--radius);display:block;margin-top:.4rem}
-  .user{text-align:right}.ai{text-align:left}
-  .user .bubble{background:var(--brand);color:#fff}
-  .ai   .bubble{background:#0d0d0d;color:var(--text)}
-  @keyframes pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      cursor: grab;
+    }
 
-  #inputBar{background:rgba(255,255,255,.07);backdrop-filter:blur(10px);
-            padding:1rem;border-top:1px solid rgba(255,255,255,.09);
-            display:flex;flex-direction:column;gap:.75rem}
-  #q{flex:1;padding:.85rem 1rem;border:none;border-radius:70px;font-size:1rem;color:#000;background:#fff}
-  .note{color:var(--brand);font-size:.85rem;font-weight:600;margin-bottom:.25rem;text-align:center}
-  #btnRow{display:flex;gap:.8rem;flex-wrap:wrap}
-  button{border:none;padding:.82rem 1.45rem;border-radius:70px;font-weight:600;font-size:1rem;cursor:pointer;transition:var(--t)}
-  #send{background:var(--brand);color:#fff}
-  #search{background:var(--brand-dark);color:#fff}
-  #picture,#contest{background:#3b3b3b;color:#fff}
-  #send:hover:not(:disabled),#search:hover:not(:disabled),#picture:hover:not(:disabled),#contest:hover:not(:disabled){transform:translateY(-2px)}
-  button:disabled{opacity:.55}
+    canvas:active {
+      cursor: grabbing;
+    }
 
-  #quotaBar{height:6px;background:#333;border-radius:4px;overflow:hidden}
-  #quotaFill{height:100%;background:var(--brand);width:0%}
+    .panel {
+      position: fixed;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 0.85rem 1.2rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+      z-index: 6;
+      color: var(--text);
+    }
 
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000}
-  .modal{background:var(--card);padding:1.8rem;border-radius:var(--radius);box-shadow:var(--shadow);max-width:340px;text-align:center;display:flex;flex-direction:column;gap:1.2rem}
-  .modal button{padding:.7rem 1rem;border:none;border-radius:70px;font-weight:600;font-size:1rem;cursor:pointer;transition:var(--t)}
-  .ok{background:var(--brand);color:#fff}.edit{background:#444;color:#fff}.cPrompt{background:#444;color:#fff;width:100%}
+    #hud {
+      top: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(92vw, 420px);
+      text-align: center;
+      pointer-events: none;
+    }
 
-  /* floating dashboard button */
-  #dashboardBtn{position:fixed;bottom:24px;right:24px;z-index:30;background:var(--brand-dark);color:#fff;border:none;border-radius:70px;padding:.9rem 1.6rem;font-weight:600;font-size:1rem;box-shadow:var(--shadow);cursor:pointer;transition:var(--t)}
-  #dashboardBtn:hover{transform:translateY(-3px)}
+    #hud h1 {
+      font-size: clamp(1.35rem, 4vw, 2rem);
+      margin: 0 0 0.35rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    #hud p {
+      margin: 0;
+      font-size: clamp(0.82rem, 2.3vw, 0.98rem);
+      opacity: 0.8;
+      line-height: 1.4;
+    }
+
+    #recenter {
+      bottom: clamp(9.5rem, 12vh, 12rem);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.96rem;
+      font-weight: 600;
+      border: none;
+      outline: none;
+      background: linear-gradient(135deg, rgba(90, 144, 255, 0.95), rgba(48, 94, 220, 0.95));
+      color: #fff;
+      padding: 0.75rem 1.8rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      pointer-events: auto;
+    }
+
+    #recenter:active {
+      transform: translateX(-50%) scale(0.97);
+      box-shadow: 0 10px 26px rgba(48, 94, 220, 0.4);
+    }
+
+    .joystick {
+      position: fixed;
+      width: clamp(112px, 28vw, 160px);
+      height: clamp(112px, 28vw, 160px);
+      border-radius: 50%;
+      background: rgba(8, 16, 32, 0.6);
+      border: 1px solid rgba(120, 160, 255, 0.38);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 32px rgba(0, 0, 0, 0.45);
+      bottom: 1.6rem;
+      z-index: 7;
+      touch-action: none;
+    }
+
+    .joystick::after {
+      content: "";
+      position: absolute;
+      inset: 14%;
+      border-radius: 50%;
+      border: 1px dashed rgba(146, 180, 255, 0.28);
+    }
+
+    .joystick .stick {
+      --x: 0px;
+      --y: 0px;
+      position: absolute;
+      width: clamp(60px, 16vw, 84px);
+      height: clamp(60px, 16vw, 84px);
+      top: 50%;
+      left: 50%;
+      transform: translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), 0);
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(150, 196, 255, 0.95), rgba(70, 118, 220, 0.88));
+      box-shadow: 0 14px 28px rgba(30, 52, 120, 0.55);
+      transition: transform 0.16s ease-out;
+    }
+
+    .joystick.active .stick {
+      transition: none;
+    }
+
+    #leftJoystick {
+      left: 1.5rem;
+    }
+
+    #rightJoystick {
+      right: 1.5rem;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .joystick {
+        opacity: 0.55;
+      }
+    }
+
+    @media (max-width: 540px) {
+      #hud {
+        top: 0.85rem;
+        padding: 0.7rem 1.1rem;
+      }
+
+      #recenter {
+        bottom: 8.8rem;
+        padding: 0.7rem 1.45rem;
+      }
+    }
   </style>
 </head>
 <body>
+  <div id="canvas-container"></div>
 
-<header>Greenwood&nbsp;Helper</header>
-
-<!-- FLOATING DASHBOARD BUTTON -->
-<button id="dashboardBtn">Dashboard</button>
-
-<main>
-  <!-- HERO -->
-  <section class="hero">
-    <h1>Your local AI companion for everything Greenwood Village, CO 🌲</h1>
-    <p>Ask about traffic, events, restaurants, services, and more – Greenwood Helper has hyper-local answers in seconds.</p>
-    <button class="cta-btn" onclick="document.getElementById('chat').scrollIntoView({behavior:'smooth'})">Try it now</button>
-  </section>
-
-  <!-- WEATHER -->
-  <section id="weatherCard">
-    <span id="wTemp">–°F</span>
-    <div id="wDesc">Loading weather…</div>
-    <small id="wHiLo"></small>
-  </section>
-
-  <!-- PLANES MAP -->
-  <section id="planesCard">
-    <h3>Live Flights Above Greenwood</h3>
-    <div id="planesMap"></div>
-  </section>
-
-  <!-- FEATURES -->
-  <section class="features">
-    <div class="feature"><i>🗺️</i><h3>Fastest Routes</h3><p>Real-time shortcuts around town.</p></div>
-    <div class="feature"><i>🍽️</i><h3>Local Eats</h3><p>Find top places to dine.</p></div>
-    <div class="feature"><i>🎉</i><h3>Events & Activities</h3><p>What’s happening this week.</p></div>
-    <div class="feature"><i>🚨</i><h3>Live Traffic</h3><p>Avoid jams with minute-by-minute updates.</p></div>
-    <div class="feature"><i>✈️</i><h3>Planes Overhead</h3><p>Now on a live map!</p></div>
-    <div class="feature"><i>🏆</i><h3>Local Contests</h3><p>Enter & vote in community contests.</p></div>
-  </section>
-
-  <!-- CHAT -->
-  <section id="chat">
-    <div id="messages"></div>
-
-    <form id="inputBar" onsubmit="return false;">
-      <input id="q" placeholder="Ask me anything about Greenwood Village…" autocomplete="off">
-      <div id="quotaBar"><div id="quotaFill"></div></div>
-
-      <div id="btnRow">
-        <button id="send" type="button">Send</button>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem">
-          <span class="note">Real-Time Results!</span>
-          <button id="search" type="button">Search Web</button>
-        </div>
-        <button id="picture" type="button">Make Picture</button>
-        <button id="contest" type="button">Contest ?</button>
-      </div>
-    </form>
-  </section>
-</main>
-
-<!-- SEARCH WARNING POP-UP -->
-<div id="confirmOverlay" class="overlay">
-  <div class="modal">
-    <p>If you didn’t type “<strong>Greenwood Village CO</strong>” it may search for another Greenwood!</p>
-    <div style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap">
-      <button id="okBtn"   class="ok">All good!</button>
-      <button id="editBtn" class="edit">Edit message</button>
-    </div>
+  <div id="hud" class="panel">
+    <h1>Omni droid&nbsp;V8</h1>
+    <p>Left joystick: move • Right joystick: look around • Works with touch or WASD&nbsp;+&nbsp;mouse.</p>
   </div>
-</div>
 
-<!-- CONTEST OVERLAY -->
-<div id="contestOverlay" class="overlay">
-  <div class="modal">
-    <h3 style="margin-bottom:.4rem">Local Contests</h3>
-    <p style="font-size:.9rem;opacity:.8;margin-bottom:.8rem">Pick one to auto-fill your question.</p>
-    <button class="cPrompt" data-prompt="Tell me about entering the Greenwood Village Photo Contest 📸">📸 Photo Contest</button>
-    <button class="cPrompt" data-prompt="How do I participate in the Greenwood Village Garden Show? 🌼">🌼 Garden Show</button>
-    <button id="cClose" class="edit" style="margin-top:1rem">Close</button>
+  <button id="recenter" class="panel" type="button">Recenter Camera</button>
+
+  <div id="leftJoystick" class="joystick">
+    <div class="stick"></div>
   </div>
-</div>
 
-<!-- SCRIPTS -->
-<!-- WEATHER -->
-<script>
-(async () => {
-  try {
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=39.61&longitude=-104.91&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America/Denver';
-    const d = await fetch(url).then(r => r.json());
-    const h = new Date().getHours();
-    const t  = Math.round(d.hourly.temperature_2m[h]);
-    const c  = d.hourly.weather_code[h];
-    const hi = Math.round(d.daily.temperature_2m_max[0]);
-    const lo = Math.round(d.daily.temperature_2m_min[0]);
-    const names = {0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Frozen fog',
-                   51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',
-                   65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',95:'Thunderstorm'};
-    document.getElementById('wTemp').textContent = `${t}°F`;
-    document.getElementById('wDesc').textContent = names[c] || '––';
-    document.getElementById('wHiLo').textContent = `Hi ${hi}° / Lo ${lo}°`;
-  } catch {
-    document.getElementById('wDesc').textContent = 'Weather unavailable';
-  }
-})();
-</script>
+  <div id="rightJoystick" class="joystick">
+    <div class="stick"></div>
+  </div>
 
-<!-- PLANES MAP -->
-<script>
-(function () {
-  const map = L.map('planesMap', {zoomControl:false}).setView([39.61,-104.91], 11);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(map);
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js";
 
-  const bbox = {lamin:39.55,lamax:39.70,lomin:-105.10,lomax:-104.70};
-  const markers = {};
+    const container = document.getElementById("canvas-container");
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.domElement.id = "omniCanvas";
+    container.appendChild(renderer.domElement);
 
-  async function loadPlanes() {
-    try {
-      const url = `https://corsproxy.io/?https://opensky-network.org/api/states/all?lamin=${bbox.lamin}&lomin=${bbox.lomin}&lamax=${bbox.lamax}&lomax=${bbox.lomax}`;
-      const data = await fetch(url).then(r => r.json());
-      const seen = new Set();
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x04070f, 0.045);
 
-      (Array.isArray(data.states) ? data.states : []).forEach(s => {
-        const id = s[0], lat = s[6], lon = s[5];
-        if (!lat || !lon) return;
-        seen.add(id);
-        if (markers[id]) {
-          markers[id].setLatLng([lat,lon]);
-        } else {
-          markers[id] = L.circleMarker([lat,lon], {radius:6,weight:1,color:'#23c463',fillOpacity:.8}).addTo(map);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 120);
+    camera.position.set(0, 3.6, 8.5);
+
+    const hemiLight = new THREE.HemisphereLight(0x3c4da8, 0x05060a, 0.85);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.55);
+    keyLight.position.set(7, 12, 8);
+    keyLight.castShadow = true;
+    keyLight.shadow.bias = -0.0008;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.camera.top = 18;
+    keyLight.shadow.camera.bottom = -12;
+    keyLight.shadow.camera.left = -12;
+    keyLight.shadow.camera.right = 12;
+    keyLight.shadow.camera.far = 60;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.PointLight(0x2d88ff, 1.25, 40, 2);
+    rimLight.position.set(-6, 6, -8);
+    scene.add(rimLight);
+
+    const spotLight = new THREE.SpotLight(0xff7a36, 1.1, 45, Math.PI / 6, 0.35, 1.5);
+    spotLight.position.set(0, 11, 2);
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.set(1024, 1024);
+    spotLight.target.position.set(0, 0, 0);
+    scene.add(spotLight);
+    scene.add(spotLight.target);
+
+    const omniGroup = new THREE.Group();
+    omniGroup.position.y = 1.2;
+    scene.add(omniGroup);
+
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x151b24,
+      metalness: 0.72,
+      roughness: 0.28
+    });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(1.45, 48, 48), bodyMaterial);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    omniGroup.add(body);
+
+    const platingMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0f141d,
+      metalness: 0.65,
+      roughness: 0.35
+    });
+    const plating = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.18, 32, 120), platingMaterial);
+    plating.rotation.x = Math.PI / 2;
+    plating.castShadow = true;
+    omniGroup.add(plating);
+
+    const accentMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff5f2e,
+      emissive: 0xff4411,
+      emissiveIntensity: 0.6,
+      roughness: 0.32,
+      metalness: 0.7
+    });
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.55, 40, 40), accentMaterial);
+    core.position.z = 0.86;
+    core.castShadow = true;
+    omniGroup.add(core);
+
+    const iris = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.12, 0.5, 32),
+      new THREE.MeshStandardMaterial({
+        color: 0x0a1017,
+        emissive: 0x3aa1ff,
+        emissiveIntensity: 0.9,
+        metalness: 0.4,
+        roughness: 0.18
+      })
+    );
+    iris.rotation.x = Math.PI / 2;
+    iris.position.z = 1.18;
+    iris.castShadow = true;
+    omniGroup.add(iris);
+
+    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 1.2, 24), bodyMaterial);
+    antenna.position.y = 1.7;
+    antenna.castShadow = true;
+    omniGroup.add(antenna);
+
+    const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 24), accentMaterial);
+    antennaTip.position.y = 2.3;
+    antennaTip.castShadow = true;
+    omniGroup.add(antennaTip);
+
+    const limbMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1c2432,
+      metalness: 0.82,
+      roughness: 0.25
+    });
+    const clawMaterial = new THREE.MeshStandardMaterial({
+      color: 0x080b11,
+      metalness: 0.6,
+      roughness: 0.32
+    });
+
+    for (let i = 0; i < 4; i++) {
+      const limbGroup = new THREE.Group();
+      limbGroup.rotation.y = i * Math.PI * 0.5;
+
+      const joint = new THREE.Mesh(new THREE.SphereGeometry(0.32, 32, 32), accentMaterial);
+      joint.position.x = 0.6;
+      joint.castShadow = true;
+      limbGroup.add(joint);
+
+      const limb = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 3.2, 32), limbMaterial);
+      limb.rotation.z = Math.PI / 2;
+      limb.position.x = 1.9;
+      limb.castShadow = true;
+      limbGroup.add(limb);
+
+      const claw = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.1, 22, 40), clawMaterial);
+      claw.rotation.y = Math.PI / 2;
+      claw.position.x = 3.2;
+      claw.castShadow = true;
+      limbGroup.add(claw);
+
+      omniGroup.add(limbGroup);
+    }
+
+    const lowerRing = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.1, 24, 80), accentMaterial);
+    lowerRing.rotation.x = Math.PI / 2;
+    lowerRing.position.y = -0.65;
+    omniGroup.add(lowerRing);
+
+    const thruster = new THREE.Mesh(
+      new THREE.ConeGeometry(0.26, 0.9, 32, 1, true),
+      new THREE.MeshStandardMaterial({
+        color: 0xff7a38,
+        emissive: 0xff4a18,
+        emissiveIntensity: 0.7,
+        metalness: 0.3,
+        roughness: 0.25,
+        transparent: true,
+        opacity: 0.68,
+        side: THREE.DoubleSide
+      })
+    );
+    thruster.rotation.x = Math.PI;
+    thruster.position.y = -1.2;
+    omniGroup.add(thruster);
+
+    const thrusterGlow = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.02, 0.5, 32, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0xff6b2f,
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      })
+    );
+    thrusterGlow.rotation.x = Math.PI / 2;
+    thrusterGlow.position.y = -1.2;
+    omniGroup.add(thrusterGlow);
+
+    const arena = new THREE.Mesh(
+      new THREE.CircleGeometry(60, 64),
+      new THREE.MeshStandardMaterial({ color: 0x07090f, metalness: 0.08, roughness: 0.92 })
+    );
+    arena.rotation.x = -Math.PI / 2;
+    arena.receiveShadow = true;
+    scene.add(arena);
+
+    const arenaRingOuter = new THREE.Mesh(
+      new THREE.RingGeometry(8, 8.4, 80),
+      new THREE.MeshBasicMaterial({
+        color: 0x3a82ff,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide
+      })
+    );
+    arenaRingOuter.rotation.x = -Math.PI / 2;
+    arenaRingOuter.position.y = 0.02;
+    scene.add(arenaRingOuter);
+
+    const arenaRingInner = new THREE.Mesh(
+      new THREE.RingGeometry(3.6, 3.9, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xff6a32,
+        transparent: true,
+        opacity: 0.42,
+        side: THREE.DoubleSide
+      })
+    );
+    arenaRingInner.rotation.x = -Math.PI / 2;
+    arenaRingInner.position.y = 0.02;
+    scene.add(arenaRingInner);
+
+    const starsGeometry = new THREE.BufferGeometry();
+    const starCount = 480;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const i3 = i * 3;
+      starPositions[i3] = (Math.random() - 0.5) * 160;
+      starPositions[i3 + 1] = Math.random() * 60 + 10;
+      starPositions[i3 + 2] = (Math.random() - 0.5) * 160;
+    }
+    starsGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+    const starsMaterial = new THREE.PointsMaterial({
+      color: 0x7aa8ff,
+      size: 0.45,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.8
+    });
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(stars);
+
+    const hoverGlow = new THREE.Mesh(
+      new THREE.RingGeometry(0.8, 1.8, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xff6b2e,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      })
+    );
+    hoverGlow.rotation.x = -Math.PI / 2;
+    hoverGlow.position.y = 0.04;
+    scene.add(hoverGlow);
+
+    const leftStick = createJoystick("leftJoystick");
+    const rightStick = createJoystick("rightJoystick");
+
+    const keys = {};
+    const listenedKeys = new Set([
+      "KeyW",
+      "KeyA",
+      "KeyS",
+      "KeyD",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Space"
+    ]);
+
+    window.addEventListener("keydown", (event) => {
+      if (listenedKeys.has(event.code)) {
+        event.preventDefault();
+      }
+      keys[event.code] = true;
+    });
+
+    window.addEventListener("keyup", (event) => {
+      keys[event.code] = false;
+    });
+
+    const pointerState = { active: false, id: null, x: 0, y: 0 };
+    renderer.domElement.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+      pointerState.active = true;
+      pointerState.id = event.pointerId;
+      pointerState.x = event.clientX;
+      pointerState.y = event.clientY;
+      renderer.domElement.setPointerCapture(event.pointerId);
+    });
+
+    renderer.domElement.addEventListener("pointermove", (event) => {
+      if (!pointerState.active || event.pointerId !== pointerState.id) return;
+      const dx = event.clientX - pointerState.x;
+      const dy = event.clientY - pointerState.y;
+      pointerState.x = event.clientX;
+      pointerState.y = event.clientY;
+      cameraYaw -= dx * 0.0032;
+      cameraPitch -= dy * 0.0022;
+      clampPitch();
+    });
+
+    const releasePointer = (event) => {
+      if (pointerState.active && event.pointerId === pointerState.id) {
+        pointerState.active = false;
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
+    };
+
+    renderer.domElement.addEventListener("pointerup", releasePointer);
+    renderer.domElement.addEventListener("pointercancel", releasePointer);
+    renderer.domElement.addEventListener("contextmenu", (event) => event.preventDefault());
+
+    function createJoystick(id) {
+      const container = document.getElementById(id);
+      const stick = container.querySelector(".stick");
+      const state = { x: 0, y: 0 };
+      let pointerId = null;
+      let active = false;
+      let maxDistance = container.clientWidth / 2;
+
+      const setStick = (dx, dy) => {
+        const distance = Math.min(Math.hypot(dx, dy), maxDistance);
+        const angle = Math.atan2(dy, dx);
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+        state.x = (maxDistance === 0 ? 0 : x / maxDistance);
+        state.y = (maxDistance === 0 ? 0 : -y / maxDistance);
+        stick.style.setProperty("--x", `${x}px`);
+        stick.style.setProperty("--y", `${y}px`);
+      };
+
+      const resetStick = () => {
+        state.x = 0;
+        state.y = 0;
+        stick.style.setProperty("--x", "0px");
+        stick.style.setProperty("--y", "0px");
+      };
+
+      const updateFromEvent = (event) => {
+        const rect = container.getBoundingClientRect();
+        const dx = event.clientX - (rect.left + rect.width / 2);
+        const dy = event.clientY - (rect.top + rect.height / 2);
+        setStick(dx, dy);
+      };
+
+      container.addEventListener("pointerdown", (event) => {
+        pointerId = event.pointerId;
+        active = true;
+        container.classList.add("active");
+        container.setPointerCapture(pointerId);
+        updateFromEvent(event);
+        event.preventDefault();
+      }, { passive: false });
+
+      container.addEventListener("pointermove", (event) => {
+        if (!active || event.pointerId !== pointerId) return;
+        updateFromEvent(event);
+        event.preventDefault();
+      }, { passive: false });
+
+      const release = (event) => {
+        if (!active || event.pointerId !== pointerId) return;
+        active = false;
+        pointerId = null;
+        container.classList.remove("active");
+        resetStick();
+        try {
+          container.releasePointerCapture(event.pointerId);
+        } catch (_) {
+          /* ignore */
         }
-      });
+      };
 
-      Object.keys(markers).forEach(id => { if (!seen.has(id)) { map.removeLayer(markers[id]); delete markers[id]; }});
-    } catch {/* silent */}
-  }
+      container.addEventListener("pointerup", release);
+      container.addEventListener("pointercancel", release);
 
-  loadPlanes();
-  setInterval(loadPlanes, 60000);
-})();
-</script>
+      const updateBounds = () => {
+        maxDistance = container.clientWidth / 2;
+        resetStick();
+      };
 
-<script>
-(function (init) {
-  document.readyState !== 'loading' ? init() : document.addEventListener('DOMContentLoaded', init);
-})(main);
+      window.addEventListener("resize", updateBounds);
+      window.addEventListener("orientationchange", () => setTimeout(updateBounds, 250));
 
-function main() {
-/* ---- CONFIG ---- */
-const API   = 'https://greenwood-helper-proxy.jenny-hoffman927.workers.dev/chat/completions';
-const MODEL = 'gpt-4o-mini';
-const SYS   = `ROLE▸You are Greenwood Helper, the hyper-local concierge for Greenwood Village, CO.
-SCOPE▸Answer only GV-related questions unless “webSearch” context is supplied.
-STYLE▸≤60 words, upbeat, 1 emoji max, never mention “AI”.`;
-const LIMIT = 20;
+      return {
+        state,
+        reset: resetStick,
+        updateBounds
+      };
+    }
 
-/* ---- DOM ---- */
-const $      = id => document.getElementById(id);
-const q      = $('q'), send=$('send'), search=$('search'), picture=$('picture'), contest=$('contest');
-const overlay= $('confirmOverlay'), okBtn=$('okBtn'), editBtn=$('editBtn');
-const cOv    = $('contestOverlay'), cClose=$('cClose');
-const dash   = $('dashboardBtn');
-const cBtns  = document.querySelectorAll('.cPrompt');
+    const recenterBtn = document.getElementById("recenter");
+    recenterBtn.addEventListener("click", () => {
+      cameraYaw = omniHeading;
+      cameraPitch = 0.3;
+      clampPitch();
+      leftStick.reset();
+      rightStick.reset();
+    });
 
-/* ---- QUOTA ---- */
-const store={read(){try{return JSON.parse(localStorage.gvCnt||'{}');}catch{return {}}},write(v){try{localStorage.gvCnt=JSON.stringify(v);}catch{}}};
-const today=()=>new Date().toISOString().slice(0,10);
-const getCnt=()=>store.read().d===today()?store.read().c:0;
-const bump =()=>store.write({d:today(),c:getCnt()+1});
-const paint=()=>$('quotaFill').style.width=Math.min(100,getCnt()/LIMIT*100)+'%';
+    let cameraYaw = Math.PI / 4;
+    let cameraPitch = 0.32;
+    const cameraRadius = 9;
+    const lookOffset = new THREE.Vector3(0, 1.3, 0);
+    const desiredCamera = new THREE.Vector3();
+    const cameraLook = omniGroup.position.clone().add(lookOffset);
+    const velocity = new THREE.Vector3(0, 0, 0);
+    let omniHeading = 0;
+    let omniHeadingTarget = 0;
 
-/* ---- HELPERS ---- */
-const banner=m=>{const d=document.createElement('div');d.textContent='⚠ '+m;Object.assign(d.style,{position:'fixed',bottom:0,left:0,right:0,padding:'8px',background:'#c62828',color:'#fff',fontFamily:'sans-serif',zIndex:9999});document.body.append(d);setTimeout(()=>d.remove(),6000);};
-const bubble=(html,cls)=>{$('messages').insertAdjacentHTML('beforeend',`<div class="msg ${cls}"><span class="bubble">${html}</span></div>`);$('messages').scrollTop=$('messages').scrollHeight;};
-const lock=x=>{send.disabled=search.disabled=picture.disabled=contest.disabled=x;};
+    function clampPitch() {
+      cameraPitch = THREE.MathUtils.clamp(cameraPitch, -0.12, 1.18);
+    }
 
-/* ---- DUCKDUCKGO ---- */
-async function webSearch(qry){
-  const url=`https://api.duckduckgo.com/?q=${encodeURIComponent(qry)}&format=json&no_html=1&skip_disambig=1`;
-  const r=await fetch(url);
-  if(!r.ok) throw new Error('Web search failed');
-  const j=await r.json();
-  let ctx='';
-  if(j.AbstractText) ctx+='Result: '+j.AbstractText+'\n';
-  if(Array.isArray(j.RelatedTopics)) j.RelatedTopics.slice(0,3).forEach(t=>{
-    if(typeof t.Text==='string') ctx+='- '+t.Text+'\n';
-  });
-  return ctx || 'No direct answer found.';
-}
+    function dampAngle(current, target, lambda, delta) {
+      const diff = THREE.MathUtils.euclideanModulo(target - current + Math.PI, Math.PI * 2) - Math.PI;
+      return current + diff * (1 - Math.exp(-lambda * delta));
+    }
 
-/* ---- CHAT ---- */
-async function askAI(userTxt,extraCtx=''){
-  const body={model:MODEL,max_tokens:128,
-              messages:[{role:'system',content:SYS+extraCtx},{role:'user',content:userTxt}]};
-  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok) throw new Error(await r.text());
-  const j=await r.json();
-  return (j.choices?.[0]?.message?.content || '').trim() || '[no reply]';
-}
+    function updateCamera(delta) {
+      const cosPitch = Math.cos(cameraPitch);
+      const sinPitch = Math.sin(cameraPitch);
+      desiredCamera.copy(omniGroup.position);
+      desiredCamera.x += Math.sin(cameraYaw) * cosPitch * cameraRadius;
+      desiredCamera.y += sinPitch * cameraRadius + 2.3;
+      desiredCamera.z += Math.cos(cameraYaw) * cosPitch * cameraRadius;
 
-/* ---- IMAGE --- */
-const generateImage = prompt => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`;
+      camera.position.x = THREE.MathUtils.damp(camera.position.x, desiredCamera.x, 3.5, delta);
+      camera.position.y = THREE.MathUtils.damp(camera.position.y, desiredCamera.y, 3.5, delta);
+      camera.position.z = THREE.MathUtils.damp(camera.position.z, desiredCamera.z, 3.5, delta);
 
-/* ---- FLOWS ---- */
-async function talk(userTxt,useWeb){
-  if(getCnt()>=LIMIT){banner('Daily limit reached');return;}
-  bubble(userTxt,'user'); lock(true); q.value='';
-  try{
-    let ctx='';
-    if(useWeb){ bubble('🔍 web searching…','ai'); ctx=`\n\nwebSearch▸${await webSearch(userTxt)}\n\n`; }
-    bubble(await askAI(userTxt,ctx),'ai');
-  }catch(e){ bubble('Error: '+e.message,'ai'); }
-  finally{ bump(); paint(); lock(false); }
-}
+      cameraLook.x = THREE.MathUtils.damp(cameraLook.x, omniGroup.position.x + lookOffset.x, 6, delta);
+      cameraLook.y = THREE.MathUtils.damp(cameraLook.y, omniGroup.position.y + lookOffset.y, 6, delta);
+      cameraLook.z = THREE.MathUtils.damp(cameraLook.z, omniGroup.position.z + lookOffset.z, 6, delta);
 
-async function pictureFlow(prompt){
-  if(!prompt) return;
-  bubble('🖼️ generating image…','ai'); lock(true); q.value='';
-  try{ bubble(`<img src="${generateImage(prompt)}" alt="${prompt}">`,'ai'); }
-  catch(e){ bubble('Error: '+e.message,'ai'); }
-  finally{ bump(); paint(); lock(false); }
-}
+      camera.lookAt(cameraLook);
+    }
 
-/* ---- EVENTS ---- */
-send.onclick    = ()=>{ const txt=q.value.trim(); if(txt) talk(txt,false); };
-picture.onclick = ()=>{ const txt=q.value.trim(); pictureFlow(txt); };
-search.onclick  = ()=>{ const txt=q.value.trim(); if(!txt) return; overlay.style.display='flex';
-                        okBtn.onclick=()=>{overlay.style.display='none';talk(txt,true);};
-                        editBtn.onclick=()=>{overlay.style.display='none';q.focus();}; };
-q.onkeydown     = e=>{ if(e.key==='Enter') send.click(); };
+    const clock = new THREE.Clock();
 
-contest.onclick = ()=> cOv.style.display='flex';
-dash.onclick    = ()=> cOv.style.display='flex';
-cClose.onclick  = ()=> cOv.style.display='none';
-cBtns.forEach(b=>b.onclick=()=>{ q.value=b.dataset.prompt || ''; cOv.style.display='none'; q.focus(); });
+    function animate() {
+      const delta = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.elapsedTime;
 
-/* fade-ins & quota bar */
-const obs=new IntersectionObserver((e,o)=>e.forEach(n=>{ if(n.isIntersecting){ n.target.style.opacity=1;n.target.style.transform='none'; o.unobserve(n.target); } }),{threshold:.2});
-document.querySelectorAll('.feature').forEach(c=>obs.observe(c));
-paint();
-}
-</script>
+      cameraYaw -= rightStick.state.x * 2.4 * delta;
+      cameraPitch += rightStick.state.y * 1.6 * delta;
+      clampPitch();
+
+      let moveX = leftStick.state.x;
+      let moveY = leftStick.state.y;
+
+      if (keys.KeyW || keys.ArrowUp) moveY += 1;
+      if (keys.KeyS || keys.ArrowDown) moveY -= 1;
+      if (keys.KeyA || keys.ArrowLeft) moveX -= 1;
+      if (keys.KeyD || keys.ArrowRight) moveX += 1;
+
+      let magnitude = Math.hypot(moveX, moveY);
+      if (magnitude > 0) {
+        const maxMag = Math.max(1, magnitude);
+        moveX /= maxMag;
+        moveY /= maxMag;
+        magnitude = Math.min(1, magnitude);
+
+        const angle = Math.atan2(moveX, moveY);
+        const worldAngle = angle + cameraYaw;
+        const targetSpeed = magnitude * 6.8;
+        const desiredVelX = Math.sin(worldAngle) * targetSpeed;
+        const desiredVelZ = Math.cos(worldAngle) * targetSpeed;
+
+        velocity.x = THREE.MathUtils.damp(velocity.x, desiredVelX, 8, delta);
+        velocity.z = THREE.MathUtils.damp(velocity.z, desiredVelZ, 8, delta);
+
+        omniHeadingTarget = worldAngle;
+      } else {
+        velocity.x = THREE.MathUtils.damp(velocity.x, 0, 6, delta);
+        velocity.z = THREE.MathUtils.damp(velocity.z, 0, 6, delta);
+      }
+
+      omniGroup.position.x += velocity.x * delta;
+      omniGroup.position.z += velocity.z * delta;
+
+      omniHeading = dampAngle(omniHeading, omniHeadingTarget, 6, delta);
+      omniGroup.rotation.y = omniHeading;
+
+      const bob = Math.sin(elapsed * 2.4) * 0.12;
+      omniGroup.position.y = 1.22 + bob;
+      hoverGlow.scale.setScalar(1 + Math.sin(elapsed * 2.2) * 0.08 + Math.hypot(velocity.x, velocity.z) * 0.05);
+      hoverGlow.material.opacity = 0.24 + Math.min(0.25, Math.hypot(velocity.x, velocity.z) * 0.05);
+
+      body.rotation.x = THREE.MathUtils.damp(body.rotation.x, velocity.z * 0.065, 5, delta);
+      body.rotation.z = THREE.MathUtils.damp(body.rotation.z, -velocity.x * 0.085, 5, delta);
+      plating.rotation.z += delta * 0.4;
+      core.material.emissiveIntensity = 0.55 + Math.sin(elapsed * 5.2) * 0.25;
+      thruster.material.opacity = 0.55 + Math.min(0.35, Math.hypot(velocity.x, velocity.z) * 0.1);
+
+      stars.rotation.y += 0.02 * delta;
+
+      updateCamera(delta);
+      renderer.render(scene, camera);
+    }
+
+    renderer.setAnimationLoop(animate);
+
+    function handleResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      leftStick.updateBounds();
+      rightStick.updateBounds();
+    }
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", () => setTimeout(handleResize, 300));
+
+    handleResize();
+  </script>
 </body>
 </html>
